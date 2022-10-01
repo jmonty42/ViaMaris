@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import re
 from classes.commodity import Commodity
+from classes.base import Base
 
 COMMODITY_NAMES_FILE = "GAMEDATA_cargo.txt"
 SYSTEM_NAMES_FILE = "GAMEDATA_systems.txt"
+BASE_NAMES_FILE = "GAMEDATA_bases.txt"
 GOODS_FILE = "goods.ini"
 
 
@@ -51,6 +53,31 @@ def main():
 
     """ DEBUG
     print(systems)
+    """
+
+    # Read in the base names
+    bases = {}
+    with open(BASE_NAMES_FILE, 'r') as bases_file:
+        base_lines = bases_file.readlines()
+
+    """
+    https://regex101.com/r/iH04yW/1
+    group1: base id
+    group2: system id for the base
+    group3: name of the base
+    """
+    base_regex = re.compile(r"^(([^_]+)\w+) = (.*)$")
+    for line in base_lines:
+        result = base_regex.match(line)
+        if result:
+            bases[result.group(1)] = Base(name=result.group(3), system=result.group(2))
+        else:
+            print("Error reading line from " + BASE_NAMES_FILE + ": '" + line + "', skipping")
+    print("Found " + str(len(bases)) + " bases.")
+
+    """ DEBUG
+    for key in bases:
+        print(key + ": " + bases[key].name + " (" + systems[bases[key].system] + ")")
     """
 
 
