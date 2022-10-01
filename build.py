@@ -33,8 +33,14 @@ def main():
     with open(SYSTEM_NAMES_FILE, 'r') as systems_file:
         system_lines = systems_file.readlines()
 
-    # https://regex101.com/r/2WzcpX/1
-    system_regex = re.compile(r"^([a-zA-Z]{2}[0-9]{1,2}[a-z]?) = ([A-Z]{2} )?([^\(\n]+)")
+    """
+    https://regex101.com/r/2WzcpX/1
+    group1: the system id that is used everywhere (BR14, FP7, St03b, etc)
+    group2: two-letter abbreviation denoting what region the system is in (Liberty, Bretonia, etc), ignored
+    group3: display name of the system (California, Tau-29, New Cambria, etc)
+    group4: some systems have a faction in parenthesis in the text file ("(Xenos)", "(Coalition)", etc), ignored
+    """
+    system_regex = re.compile(r"^([a-zA-Z]{2}[0-9]{1,2}[a-z]?) = ([A-Z]{2} )?([^\(\n]+)(\s\(.*\))?$")
     for line in system_lines:
         result = system_regex.match(line)
         if result:
