@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 import re
-from classes.good import Good
+from classes.commodity import Commodity
 
-CARGO_NAMES_FILE = "GAMEDATA_cargo.txt"
+COMMODITY_NAMES_FILE = "GAMEDATA_cargo.txt"
 SYSTEM_NAMES_FILE = "GAMEDATA_systems.txt"
 GOODS_FILE = "goods.ini"
 
 
 def main():
     # First read in the name of the commodities
-    goods_table = {}
-    with open(CARGO_NAMES_FILE, 'r') as names_file:
+    commodities = {}
+    with open(COMMODITY_NAMES_FILE, 'r') as names_file:
         names = names_file.readlines()
 
     # https://regex101.com/r/uTcJWs/1
@@ -18,14 +18,14 @@ def main():
     for line in names:
         result = name_regex.match(line)
         if result:
-            goods_table[result.group(1)] = Good(name=result.group(2))
+            commodities[result.group(1)] = Commodity(name=result.group(2))
         else:
-            print("Error reading line from " + CARGO_NAMES_FILE + ": '" + line + "', skipping")
-    print("Found " + str(len(goods_table)) + " goods.")
+            print("Error reading line from " + COMMODITY_NAMES_FILE + ": '" + line + "', skipping")
+    print("Found " + str(len(commodities)) + " goods.")
 
     """ DEBUG
-    for key in goods_table:
-        print(key + ": " + str(goods_table[key]))
+    for key in commodities:
+        print(key + ": " + str(commodities[key]))
     """
 
     # Next read in the names of the systems
