@@ -4,11 +4,10 @@ class Base:
         self.name = name
         # id of the system the base is in
         self.system = system
-        # maps of commodity ids to prices for this base
-        # what price the player can buy the given commodity from the base at
-        self.buy_prices = {}
-        # what price the player can sell the given commodity to the base at
-        self.sell_prices = {}
+        # set of which commodities the player can buy from the base
+        self.commodities_to_buy = set()
+        # map of commodity ids to prices for this base
+        self.commodity_prices = {}
 
     def __str__(self):
         return self.name + " (" + self.system + ")"

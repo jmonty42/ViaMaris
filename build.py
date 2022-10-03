@@ -7,6 +7,8 @@ COMMODITY_NAMES_FILE = "GAMEDATA_cargo.txt"
 SYSTEM_NAMES_FILE = "GAMEDATA_systems.txt"
 BASE_NAMES_FILE = "GAMEDATA_bases.txt"
 GOODS_FILE = "goods.ini"
+MARKET_FILE = "market_commodities.ini"
+OVERRIDE_FILE = "prices.cfg"
 
 
 def main():
@@ -46,7 +48,7 @@ def main():
     for line in system_lines:
         result = system_regex.match(line)
         if result:
-            systems[result.group(1)] = result.group(3)
+            systems[result.group(1).lower()] = result.group(3)
         else:
             print("Error reading line from " + SYSTEM_NAMES_FILE + ": '" + line + "', skipping")
     print("Found " + str(len(systems)) + " systems.")
@@ -70,7 +72,7 @@ def main():
     for line in base_lines:
         result = base_regex.match(line)
         if result:
-            bases[result.group(1)] = Base(name=result.group(3), system=result.group(2))
+            bases[result.group(1).lower()] = Base(name=result.group(3), system=result.group(2).lower())
         else:
             print("Error reading line from " + BASE_NAMES_FILE + ": '" + line + "', skipping")
     print("Found " + str(len(bases)) + " bases.")
@@ -125,6 +127,87 @@ def main():
     """ DEBUG
     for key in commodities:
         print(str(commodities[key]))
+    """
+
+    # get the buy/sell prices for each base
+    with open(MARKET_FILE, 'r') as market_file:
+        market_lines = market_file.readlines()
+
+    base_regex = re.compile(r"^base\s*=\s*(\S+)\s*$")
+    """
+    https://regex101.com/r/s9zv3C/1
+    group1: commodity id
+    group2: "0" = player can buy the commodity from the base (but can also sell it at the same price)
+    group3: multiplier of the base price for that commodity
+    """
+    buy_sell_regex = re.compile(r"^MarketGood = ([^,]+),\s*\d*,\s*-?\d*.?\d*,\s*\d*,\s*\d*,\s*(\d*),\s*(\d*\.?\d*)\s*$")
+
+    current_base = ""
+    for line in market_lines:
+        result = base_regex.match(line)
+        if result:
+            current_base = result.group(1).lower()
+            continue
+        result = buy_sell_regex.match(line)
+        if result:
+            commodity = result.group(1).lower()
+            float_multiplier = float(result.group(3))
+            try:
+                price = int(commodities[commodity].base_price * float_multiplier)
+            except KeyError:
+                print("ERROR: " + commodity + " was not found in the commodities dictionary")
+                continue
+            try:
+                bases[current_base].commodity_prices[commodity] = price
+                if result.group(2) == "0":
+                    bases[current_base].commodities_to_buy.add(commodity)
+            except KeyError:
+                if "_miner" not in current_base:
+                    # xxx_miner bases show up with a single line for water, ignoring
+                    print("ERROR: " + current_base + " was not found in the bases dictionary")
+            continue
+        elif "MarketGood" in line and ";MarketGood" not in line:  # ; = commented out line
+            print("ERROR: line  should have matched the 'MarketGood' pattern but didn't: " + line)
+
+    # process the override file
+    with open(OVERRIDE_FILE, 'r') as override_file:
+        override_lines = override_file.readlines()
+
+    """
+    https://regex101.com/r/w3smOd/2
+    group1: base id
+    group2: commodity id
+    group3: new price (should override what is already set
+    group4: "0" = player can buy this commodity from the base
+    """
+    override_regex = re.compile(r"^Market[Gg]ood\s*=\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*(\d)")
+
+    for line in override_lines:
+        result = override_regex.match(line)
+        if result:
+            base = result.group(1).lower()
+            commodity = result.group(2).lower()
+            price = int(float(result.group(3)))
+            try:
+                bases[base].commodity_prices[commodity] = price
+            except KeyError:
+                print("ERROR: unknown base: " + base)
+                continue
+            can_buy = result.group(4) == "0"
+            if can_buy:
+                bases[base].commodities_to_buy.add(commodity)
+            else:
+                bases[base].commodities_to_buy.discard(commodity)
+            continue
+        elif "MarketGood" in line and ";Market" not in line:
+            print("ERROR: line in override file should have matched but didn't: " + line)
+
+    """ DEBUG
+    print("Commodity prices for Harrisburg Station:")
+    for commodity in bases["li09_08_base"].commodity_prices:
+        if commodity in bases["li09_08_base"].commodities_to_buy:
+            print("Player can buy " + commodities[commodity].name + " from this base")
+        print("{0}: {1}".format(commodities[commodity].name, bases["li09_08_base"].commodity_prices[commodity]))
     """
 
 
