@@ -20,7 +20,7 @@ def main():
     for line in names:
         result = name_regex.match(line)
         if result:
-            commodities[result.group(1)] = Commodity(name=result.group(2))
+            commodities[result.group(1).lower()] = Commodity(name=result.group(2))
         else:
             print("Error reading line from " + COMMODITY_NAMES_FILE + ": '" + line + "', skipping")
     print("Found " + str(len(commodities)) + " goods.")
@@ -78,6 +78,53 @@ def main():
     """ DEBUG
     for key in bases:
         print(key + ": " + bases[key].name + " (" + systems[bases[key].system] + ")")
+    """
+
+    # get the base prices for each commodity
+    with open(GOODS_FILE, 'r') as goods_file:
+        prices_lines = goods_file.readlines()
+
+    name_regex = re.compile(r"^nickname = ([\w\-]+)\s*$")
+    price_regex = re.compile(r"^price = (\d+)$")
+
+    current_commodity = ""
+    # found_price = True
+    price_count = 0
+    line_num = -1
+    for line in prices_lines:
+        line_num += 1
+        if "[Good]" in line:
+            """ DEBUG
+            if not found_price:
+                print("Did not find a price for commodity '" + current_commodity + "'")
+            """
+            current_commodity = ""
+            # found_price = False
+            continue
+        result = name_regex.match(line)
+        if result:
+            current_commodity = result.group(1).lower()
+            continue
+        result = price_regex.match(line)
+        if result:
+            if not current_commodity:
+                print("Somehow found a price but not a commodity on line " + str(line_num))
+                continue
+            if current_commodity not in commodities:
+                """ DEBUG
+                print("Found a price for '" + current_commodity + "', but it wasn't in our list, adding it.")
+                """
+                commodities[current_commodity] = Commodity(name=current_commodity)
+            commodities[current_commodity].base_price = float(result.group(1))
+            # found_price = True
+            price_count += 1
+            continue
+
+    print("Found " + str(price_count) + " prices")
+
+    """ DEBUG
+    for key in commodities:
+        print(str(commodities[key]))
     """
 
 
