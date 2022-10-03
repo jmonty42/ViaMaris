@@ -2,17 +2,21 @@
 import re
 from classes.commodity import Commodity
 from classes.base import Base
+from classes.pricelist import PriceList
 
+# GAMEDATA files are found in the IONCROSS folder of the game directory
 COMMODITY_NAMES_FILE = "GAMEDATA_cargo.txt"
 SYSTEM_NAMES_FILE = "GAMEDATA_systems.txt"
 BASE_NAMES_FILE = "GAMEDATA_bases.txt"
+# These .ini files are found in the DATA\EQUIPMENT\ folder
 GOODS_FILE = "goods.ini"
 MARKET_FILE = "market_commodities.ini"
+# This is found in the EXE\flhook_plugins\ foler
 OVERRIDE_FILE = "prices.cfg"
 
 
 def main():
-    # First read in the name of the commodities
+    # First read in the names of the commodities
     commodities = {}
     with open(COMMODITY_NAMES_FILE, 'r') as names_file:
         names = names_file.readlines()
@@ -87,7 +91,7 @@ def main():
         prices_lines = goods_file.readlines()
 
     name_regex = re.compile(r"^nickname = ([\w\-]+)\s*$")
-    price_regex = re.compile(r"^price = (\d+)$")
+    price_regex = re.compile(r"^price = (\d+)\s*$")
 
     current_commodity = ""
     # found_price = True
@@ -208,6 +212,63 @@ def main():
         if commodity in bases["li09_08_base"].commodities_to_buy:
             print("Player can buy " + commodities[commodity].name + " from this base")
         print("{0}: {1}".format(commodities[commodity].name, bases["li09_08_base"].commodity_prices[commodity]))
+    """
+
+    # calculate the best prices for each commodity
+    best_trades = PriceList(max_length=20)
+
+    for commodity in commodities:
+        for base in bases:
+            if bases[base].system == "iw09":
+                # ignore the Bastille Prison System
+                continue
+            if commodity in bases[base].commodity_prices:
+                price = bases[base].commodity_prices[commodity]
+                commodities[commodity].best_sell_prices.add_price(price, base)
+                if commodity in bases[base].commodities_to_buy:
+                    commodities[commodity].best_buy_prices.add_price(price, base)
+        if commodities[commodity].best_buy_prices.length > 0 and \
+                commodities[commodity].best_sell_prices.length > 0:
+            diff = commodities[commodity].best_sell_prices.top.price - commodities[commodity].best_buy_prices.top.price
+            best_trades.add_price(diff, commodity)
+
+    print("Top 20 most lucrative commodities:")
+    current = best_trades.top
+    while current:
+        base = bases[commodities[current.base].best_buy_prices.top.base]
+        print("Buy {} at {} in {} for {}".format(
+            commodities[current.base].name,
+            base.name,
+            systems[base.system],
+            base.commodity_prices[current.base]
+        ))
+        base = bases[commodities[current.base].best_sell_prices.top.base]
+        print("Sell it at {} in {} for {} ({} profit)".format(
+            base.name,
+            systems[base.system],
+            base.commodity_prices[current.base],
+            current.price
+        ))
+        current = current.next
+
+    """ DEBUG
+    print("Best places to sell " + commodities["commodity_xenos"].name + ":")
+    current_node = commodities["commodity_xenos"].best_sell_prices.top
+    while current_node:
+        print(bases[current_node.base].name + ": " + str(current_node.price))
+        current_node = current_node.next
+
+    print("Best places to buy " + commodities["commodity_drillbits"].name + ":")
+    current_node = commodities["commodity_drillbits"].best_buy_prices.top
+    while current_node:
+        print(bases[current_node.base].name + ": " + str(current_node.price))
+        current_node = current_node.next
+
+    print("Best places to sell " + commodities["commodity_drillbits"].name + ":")
+    current_node = commodities["commodity_drillbits"].best_sell_prices.top
+    while current_node:
+        print(bases[current_node.base].name + ": " + str(current_node.price))
+        current_node = current_node.next
     """
 
 
