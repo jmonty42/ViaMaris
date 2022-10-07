@@ -1,9 +1,13 @@
 class Base:
+    """
+    Represents a base in the game and is used for convenience to keep track of the plugin overrides that the flint API
+    doesn't take into account.
+    """
 
-    def __init__(self, name, nickname='', system=''):
+    def __init__(self, name, base_id: str = '', system: str = ''):
         self.name = name
         # id of the base
-        self.nickname = nickname
+        self.base_id = base_id
         # id of the system the base is in
         self.system = system
         # set of which commodities the player can buy from the base

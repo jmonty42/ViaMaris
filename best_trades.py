@@ -7,7 +7,7 @@ from classes.commodity import Commodity
 from classes.base import Base
 from classes.pricelist import PriceList
 
-# This is found in the EXE\flhook_plugins\ foler
+# This is found in the EXE\flhook_plugins\ folder
 OVERRIDE_FILE = "prices.cfg"
 
 
@@ -27,7 +27,7 @@ def main():
         for base in flint_system.bases():
             bases[base.base.lower()] = Base(
                 name=base.name(),
-                nickname=base.base.lower(),
+                base_id=base.base.lower(),
                 system=flint_system.nickname.lower()
             )
             buying_commodities = base.universe_base().buys()
@@ -66,18 +66,18 @@ def main():
         result = override_regex.match(line)
         if result:
             base_id = result.group(1).lower()
-            commodity = result.group(2).lower()
+            commodity_id = result.group(2).lower()
             price = int(float(result.group(3)))
             try:
-                bases[base_id].commodity_prices[commodity] = price
+                bases[base_id].commodity_prices[commodity_id] = price
             except KeyError:
                 print("ERROR: unknown base: " + base_id)
                 continue
             can_buy = result.group(4) == "0"
             if can_buy:
-                bases[base_id].commodities_to_buy.add(commodity)
+                bases[base_id].commodities_to_buy.add(commodity_id)
             else:
-                bases[base_id].commodities_to_buy.discard(commodity)
+                bases[base_id].commodities_to_buy.discard(commodity_id)
             continue
         elif "MarketGood" in line and ";Market" not in line:
             print("ERROR: line in override file should have matched but didn't: " + line)
@@ -85,43 +85,44 @@ def main():
     # calculate the best prices for each commodity
     best_trades = PriceList(max_length=20)
 
-    for commodity in commodities:
+    for commodity_id in commodities:
         for base_id in bases:
             if bases[base_id].system == "iw09":
                 # ignore the Bastille Prison System
                 continue
-            if commodity in bases[base_id].commodity_prices:
-                price = bases[base_id].commodity_prices[commodity]
-                commodities[commodity].price_map[base_id] = price
-                commodities[commodity].best_sell_prices.add_price(price, base_id)
-                if commodity in bases[base_id].commodities_to_buy:
-                    commodities[commodity].best_buy_prices.add_price(price, base_id)
-        if commodities[commodity].best_buy_prices.length > 0 and \
-                commodities[commodity].best_sell_prices.length > 0:
-            diff = commodities[commodity].best_sell_prices.top.price - commodities[commodity].best_buy_prices.top.price
-            cargo_space = 1 if commodities[commodity].volume == 0 else commodities[commodity].volume
-            best_trades.add_price(int(diff / cargo_space), commodity)
+            if commodity_id in bases[base_id].commodity_prices:
+                price = bases[base_id].commodity_prices[commodity_id]
+                commodities[commodity_id].price_map[base_id] = price
+                commodities[commodity_id].best_sell_prices.add_price(price, base_id)
+                if commodity_id in bases[base_id].commodities_to_buy:
+                    commodities[commodity_id].best_buy_prices.add_price(price, base_id)
+        if commodities[commodity_id].best_buy_prices.length > 0 and \
+                commodities[commodity_id].best_sell_prices.length > 0:
+            diff = commodities[commodity_id].best_sell_prices.top.price - \
+                   commodities[commodity_id].best_buy_prices.top.price
+            cargo_space = 1 if commodities[commodity_id].volume == 0 else commodities[commodity_id].volume
+            best_trades.add_price(int(diff / cargo_space), commodity_id)
 
     print("Top 20 most lucrative commodities:")
     current = best_trades.top
     while current:
-        base: Base = bases[commodities[current.base].best_buy_prices.top.base]
+        base: Base = bases[commodities[current.string_id].best_buy_prices.top.string_id]
         print("Buy {} at {} ({}) in {} ({}) for {} ({} cargo)".format(
-            commodities[current.base].name,
+            commodities[current.string_id].name,
             base.name,
-            base.nickname,
+            base.base_id,
             systems[base.system],
             base.system,
-            base.commodity_prices[current.base],
-            commodities[current.base].volume
+            base.commodity_prices[current.string_id],
+            commodities[current.string_id].volume
         ))
-        base: Base = bases[commodities[current.base].best_sell_prices.top.base]
+        base: Base = bases[commodities[current.string_id].best_sell_prices.top.string_id]
         print("Sell it at {} ({}) in {} ({}) for {} ({} profit per cargo space)".format(
             base.name,
-            base.nickname,
+            base.base_id,
             systems[base.system],
             base.system,
-            base.commodity_prices[current.base],
+            base.commodity_prices[current.string_id],
             current.price
         ))
         current = current.next
