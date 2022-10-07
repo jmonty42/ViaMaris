@@ -43,7 +43,9 @@ def main():
     flint_commodities = flint.get_commodities()
 
     for fl_commodity in flint_commodities:
-        commodities[fl_commodity.nickname.lower()] = Commodity(name=fl_commodity.name(), price=fl_commodity.price())
+        new_commodity = Commodity(name=fl_commodity.name(), price=fl_commodity.price())
+        new_commodity.volume = int(fl_commodity.volume)
+        commodities[fl_commodity.nickname.lower()] = new_commodity
 
     # process the override file
     with open(OVERRIDE_FILE, 'r') as override_file:
@@ -95,20 +97,22 @@ def main():
         if commodities[commodity].best_buy_prices.length > 0 and \
                 commodities[commodity].best_sell_prices.length > 0:
             diff = commodities[commodity].best_sell_prices.top.price - commodities[commodity].best_buy_prices.top.price
-            best_trades.add_price(diff, commodity)
+            cargo_space = 1 if commodities[commodity].volume == 0 else commodities[commodity].volume
+            best_trades.add_price(int(diff/cargo_space), commodity)
 
     print("Top 20 most lucrative commodities:")
     current = best_trades.top
     while current:
         base = bases[commodities[current.base].best_buy_prices.top.base]
-        print("Buy {} at {} in {} for {}".format(
+        print("Buy {} at {} in {} for {} ({} cargo)".format(
             commodities[current.base].name,
             base.name,
             systems[base.system],
-            base.commodity_prices[current.base]
+            base.commodity_prices[current.base],
+            commodities[current.base].volume
         ))
         base = bases[commodities[current.base].best_sell_prices.top.base]
-        print("Sell it at {} in {} for {} ({} profit)".format(
+        print("Sell it at {} in {} for {} ({} profit per cargo space)".format(
             base.name,
             systems[base.system],
             base.commodity_prices[current.base],
