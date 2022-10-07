@@ -25,20 +25,29 @@ def main():
         systems[flint_system.nickname.lower()] = flint_system.name()
         base: flint.routines.BaseSolar
         for base in flint_system.bases():
-            bases[base.base.lower()] = Base(
+            system_id = flint_system.nickname.lower()
+            base_id = base.base.lower()
+            if not base_id.startswith(system_id):
+                # two bases currently have mismatched base names, which is annoying
+                match base_id:
+                    case "br04_01_base":
+                        base_id = "bw01_01_base"
+                    case "rh10_02_base":
+                        base_id = "rh01_01_base"
+            bases[base_id] = Base(
                 name=base.name(),
-                base_id=base.base.lower(),
-                system=flint_system.nickname.lower()
+                base_id=base_id,
+                system=system_id
             )
             buying_commodities = base.universe_base().buys()
             for commodity in buying_commodities:
-                bases[base.base.lower()].commodity_prices[commodity.nickname.lower()] = \
+                bases[base_id].commodity_prices[commodity.nickname.lower()] = \
                     buying_commodities[commodity]
             selling_commodities = base.universe_base().sells()
             for commodity in selling_commodities:
-                bases[base.base.lower()].commodity_prices[commodity.nickname.lower()] = \
+                bases[base_id].commodity_prices[commodity.nickname.lower()] = \
                     selling_commodities[commodity]
-                bases[base.base.lower()].commodities_to_buy.add(commodity.nickname.lower())
+                bases[base_id].commodities_to_buy.add(commodity.nickname.lower())
 
     # Next read in the names of the commodities
     commodities = {}
