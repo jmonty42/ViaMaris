@@ -2,9 +2,9 @@ import re
 import flint
 import os
 
-from classes.commodity import Commodity
 from classes.base import Base
-from classes.pricelist import PriceList
+from classes.commodity import Commodity
+from classes.system import System
 
 # This is found in the EXE\flhook_plugins\ folder
 OVERRIDE_FILE = "prices.cfg"
@@ -29,7 +29,11 @@ class GameState(object):
         # Add bases by system
         flint_system: flint.routines.System
         for flint_system in flint_systems:
-            self.systems[flint_system.nickname.lower()] = flint_system.name()
+            system_id = flint_system.nickname.lower()
+            self.systems[system_id] = System(
+                system_id=system_id,
+                name=flint_system.name()
+            )
             base: flint.routines.BaseSolar
             for base in flint_system.bases():
                 system_id = flint_system.nickname.lower()
@@ -41,6 +45,7 @@ class GameState(object):
                             base_id = "bw01_01_base"
                         case "rh10_02_base":
                             base_id = "rh01_01_base"
+                self.systems[system_id].bases.add(base_id)
                 self.bases[base_id] = Base(
                     name=base.name(),
                     base_id=base_id,
@@ -97,3 +102,15 @@ class GameState(object):
             elif "MarketGood" in line and ";Market" not in line:
                 print("ERROR: line in override file should have matched but didn't: " + line)
 
+        # calculate the best prices for each commodity
+        for commodity_id in self.commodities:
+            for base_id in self.bases:
+                if self.bases[base_id].system == "iw09":
+                    # ignore the Bastille Prison System
+                    continue
+                if commodity_id in self.bases[base_id].commodity_prices:
+                    price = self.bases[base_id].commodity_prices[commodity_id]
+                    self.commodities[commodity_id].price_map[base_id] = price
+                    self.commodities[commodity_id].best_sell_prices.add_price(price, base_id)
+                    if commodity_id in self.bases[base_id].commodities_to_buy:
+                        self.commodities[commodity_id].best_buy_prices.add_price(price, base_id)

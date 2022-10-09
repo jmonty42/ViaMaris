@@ -1,29 +1,15 @@
-#!/usr/bin/env python3
-
-from classes.commodity import Commodity
 from classes.base import Base
-from classes.pricelist import PriceList
 from classes.gamestate import GameState
+from classes.pricelist import PriceList
 
 
 def main():
 
     game = GameState()
 
-    # calculate the best prices for each commodity
     best_trades = PriceList(max_length=20)
 
     for commodity_id in game.commodities:
-        for base_id in game.bases:
-            if game.bases[base_id].system == "iw09":
-                # ignore the Bastille Prison System
-                continue
-            if commodity_id in game.bases[base_id].commodity_prices:
-                price = game.bases[base_id].commodity_prices[commodity_id]
-                game.commodities[commodity_id].price_map[base_id] = price
-                game.commodities[commodity_id].best_sell_prices.add_price(price, base_id)
-                if commodity_id in game.bases[base_id].commodities_to_buy:
-                    game.commodities[commodity_id].best_buy_prices.add_price(price, base_id)
         if game.commodities[commodity_id].best_buy_prices.length > 0 and \
                 game.commodities[commodity_id].best_sell_prices.length > 0:
             diff = game.commodities[commodity_id].best_sell_prices.top.price - \
