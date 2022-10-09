@@ -1,14 +1,14 @@
 class PriceNode:
 
-    def __init__(self, price, string_id):
+    def __init__(self, price, identifier):
         self.price = price
-        self.string_id = string_id
+        self.identifier = identifier
         self.next: PriceNode = None
 
 
 class PriceList:
     """
-    A sorted list of prices with associated string ids. The list can either be sorted least first or greatest first.
+    A sorted list of prices with associated identifiers. The list can either be sorted least first or greatest first.
 
     Each Commodity will have a PriceList with base ids representing which bases have the lowest buy price (meaning the
     player will pay the least amount of credits to buy that commodity from that base) and another PriceList representing
@@ -28,11 +28,12 @@ class PriceList:
         self.length: int = 0
         self.max_length: int = max_length
 
-    def add_price(self, price, string_id):
+    def add_price(self, price, identifier):
         """
-        Given a price, string_id pair, this method will determine if it should be added to the list.
+        Given a price, identifier pair, this method will determine if it should be added to the list. The identifier can
+        be anything as it doesn't affect sorting.
         :param price:
-        :param string_id:
+        :param identifier:
         :return:
         """
         should_add = False
@@ -43,7 +44,7 @@ class PriceList:
             should_add = True
 
         if should_add:
-            new_node = PriceNode(price, string_id)
+            new_node = PriceNode(price, identifier)
             if self.length == 0:
                 # the list is empty
                 self.top = new_node

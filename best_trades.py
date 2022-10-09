@@ -20,23 +20,23 @@ def main():
     print("Top 20 most lucrative commodities:")
     current = best_trades.top
     while current:
-        base: Base = game.bases[game.commodities[current.string_id].best_buy_prices.top.string_id]
+        base: Base = game.bases[game.commodities[current.identifier].best_buy_prices.top.identifier]
         print("Buy {} at {} ({}) in {} ({}) for {} ({} cargo)".format(
-            game.commodities[current.string_id].name,
+            game.commodities[current.identifier].name,
             base.name,
             base.base_id,
             game.systems[base.system],
             base.system,
-            base.commodity_prices[current.string_id],
-            game.commodities[current.string_id].volume
+            base.commodity_prices[current.identifier],
+            game.commodities[current.identifier].volume
         ))
-        base: Base = game.bases[game.commodities[current.string_id].best_sell_prices.top.string_id]
+        base: Base = game.bases[game.commodities[current.identifier].best_sell_prices.top.identifier]
         print("Sell it at {} ({}) in {} ({}) for {} ({} profit per cargo space)".format(
             base.name,
             base.base_id,
             game.systems[base.system],
             base.system,
-            base.commodity_prices[current.string_id],
+            base.commodity_prices[current.identifier],
             current.price
         ))
         current = current.next
