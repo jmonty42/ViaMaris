@@ -25,7 +25,7 @@ def main():
             game.commodities[current.identifier].name,
             base.name,
             base.base_id,
-            game.systems[base.system],
+            game.systems[base.system].name,
             base.system,
             base.commodity_prices[current.identifier],
             game.commodities[current.identifier].volume
@@ -34,7 +34,7 @@ def main():
         print("Sell it at {} ({}) in {} ({}) for {} ({} profit per cargo space)".format(
             base.name,
             base.base_id,
-            game.systems[base.system],
+            game.systems[base.system].name,
             base.system,
             base.commodity_prices[current.identifier],
             current.price
