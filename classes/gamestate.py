@@ -54,9 +54,9 @@ class GameState(object):
             self.add_bases_in_system(flint_system)
 
     def add_bases_in_system(self, flint_system: flint.routines.System):
+        system_id = flint_system.nickname.lower()
         base: flint.routines.BaseSolar
         for base in flint_system.bases():
-            system_id = flint_system.nickname.lower()
             base_id = base.base.lower()
             if not base_id.startswith(system_id):
                 # two bases currently have mismatched base names, which is annoying
@@ -65,21 +65,33 @@ class GameState(object):
                         base_id = "bw01_01_base"
                     case "rh10_02_base":
                         base_id = "rh01_01_base"
-            self.systems[system_id].bases.add(base_id)
-            self.bases[base_id] = Base(
-                name=base.name(),
-                base_id=base_id,
-                system=system_id
-            )
-            buying_commodities = base.universe_base().buys()
-            for commodity in buying_commodities:
-                commodity_id = commodity.nickname.lower()
-                self.bases[base_id].commodity_prices[commodity_id] = buying_commodities[commodity]
-            selling_commodities = base.universe_base().sells()
-            for commodity in selling_commodities:
-                commodity_id = commodity.nickname.lower()
-                self.bases[base_id].commodity_prices[commodity_id] = selling_commodities[commodity]
-                self.bases[base_id].commodities_to_buy.add(commodity_id)
+            self.add_base_to_system(base.universe_base(), system_id)
+
+        flint_bases = flint.get_bases()
+
+        for solar in flint_system.objects():
+            base_id = solar.nickname + "_base"
+            if (base_id not in self.systems[system_id].bases) and (base_id in flint_bases._map):
+                base = flint_bases._map[base_id]
+                self.add_base_to_system(base, system_id)
+
+    def add_base_to_system(self, base: flint.routines.Base, system_id: str):
+        base_id = base.nickname
+        self.systems[system_id].bases.add(base_id)
+        self.bases[base_id] = Base(
+            name=base.name(),
+            base_id=base_id,
+            system=system_id
+        )
+        buying_commodities = base.buys()
+        for commodity in buying_commodities:
+            commodity_id = commodity.nickname.lower()
+            self.bases[base_id].commodity_prices[commodity_id] = buying_commodities[commodity]
+        selling_commodities = base.sells()
+        for commodity in selling_commodities:
+            commodity_id = commodity.nickname.lower()
+            self.bases[base_id].commodity_prices[commodity_id] = selling_commodities[commodity]
+            self.bases[base_id].commodities_to_buy.add(commodity_id)
 
     def get_commodities(self):
         # read in the names of the commodities
