@@ -6,7 +6,9 @@ def main():
     game = GameState()
 
     for faction_id in game.factions:
-        print(f"{faction_id}: {game.factions[faction_id].name}")
+        # I think these are player factions
+        if not faction_id.startswith("pf"):
+            print(f"{faction_id}: {game.factions[faction_id].name}")
 
     faction_id = input("Enter a faction id: ").lower()
     while faction_id not in game.factions:
