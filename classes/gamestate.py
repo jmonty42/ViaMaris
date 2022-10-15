@@ -5,20 +5,26 @@ import re
 
 from classes.base import Base
 from classes.commodity import Commodity
+from classes.faction import Faction
 from classes.system import System
 
-# This is found in the EXE\flhook_plugins\ folder
-OVERRIDE_FILE = "prices.cfg"
 PICKLE_FILE = "gamestate.pickle"
 
 
 class GameState(object):
+    GAME_FOLDER_ENV = "FREELANCER_FOLDER"
+    factions: dict[str, Faction]
+    systems: dict[str, System]
+    bases: dict[str, Base]
+    commodities: dict[str, Commodity]
+
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(GameState, cls).__new__(cls)
         return cls.instance
 
     def __init__(self):
+        self.factions = {}
         self.systems = {}
         self.bases = {}
         self.commodities = {}
@@ -27,17 +33,31 @@ class GameState(object):
             with open(PICKLE_FILE, 'rb') as infile:
                 game = pickle.load(infile)
             print("Loading game state from file.")
+            self.factions = game.factions
             self.systems = game.systems
             self.bases = game.bases
             self.commodities = game.commodities
         except Exception:
-            flint.set_install_path(os.environ['FREELANCER_FOLDER'])
+            flint.set_install_path(os.environ[self.GAME_FOLDER_ENV])
 
+            self.get_factions()
             self.get_systems()
             self.get_commodities()
             self.process_override_file()
             self.best_price_for_each_commodity()
+            self.get_bribes()
             self.save_to_file()
+
+    def get_factions(self):
+        flint_factions: flint.routines.EntitySet[flint.routines.Faction] = flint.get_factions()
+
+        for faction in flint_factions:
+            faction_id = faction.nickname.lower()
+            name = faction.name()
+            self.factions[faction_id] = Faction(
+                faction_id=faction_id,
+                name=name
+            )
 
     def get_systems(self):
         # First read in the names of the systems
@@ -66,6 +86,8 @@ class GameState(object):
                     case "rh10_02_base":
                         base_id = "rh01_01_base"
             self.add_base_to_system(base.universe_base(), system_id)
+            owner_id = base.owner().nickname.lower()
+            self.factions[owner_id].bases_owned.add(base_id)
 
         flint_bases = flint.get_bases()
 
@@ -73,6 +95,8 @@ class GameState(object):
             base_id = solar.nickname + "_base"
             if (base_id not in self.systems[system_id].bases) and (base_id in flint_bases._map):
                 base = flint_bases._map[base_id]
+                # DEBUG
+                # print(f"{base.name()} ({base_id}) in system {system_id}")
                 self.add_base_to_system(base, system_id)
 
     def add_base_to_system(self, base: flint.routines.Base, system_id: str):
@@ -104,7 +128,8 @@ class GameState(object):
 
     def process_override_file(self):
         # process the override file
-        with open(OVERRIDE_FILE, 'r') as override_file:
+        prices_cfg_path = os.path.join(os.environ[self.GAME_FOLDER_ENV], "EXE", "flhook_plugins", "prices.cfg")
+        with open(prices_cfg_path, 'r') as override_file:
             override_lines = override_file.readlines()
 
         """
@@ -149,6 +174,49 @@ class GameState(object):
                     self.commodities[commodity_id].best_sell_prices.add_price(price, base_id)
                     if commodity_id in self.bases[base_id].commodities_to_buy:
                         self.commodities[commodity_id].best_buy_prices.add_price(price, base_id)
+
+    def get_bribes(self):
+        mbases_path = os.path.join(os.environ[self.GAME_FOLDER_ENV], "DATA", "MISSIONS", "mbases.ini")
+
+        with open(mbases_path, 'r') as mbases_file:
+            mbases_lines = mbases_file.readlines()
+
+        base_id = None
+        in_mbase_block = False
+        block_header = re.compile(r"^\[\S+\]")
+        nickname = re.compile(r"^nickname\s*=\s*(\S+)$")
+        """
+        https://regex101.com/r/J4y6ov/1
+        group1: faction id
+        group2: first number in the bribe
+        group3: second number in the bribe
+        """
+        bribe_pattern = re.compile(r"^bribe\s*=\s*([^,]+),\s*(\d+),\s*(\d+)$")
+        for line in mbases_lines:
+            if line.startswith("[MBase]"):
+                in_mbase_block = True
+                continue
+            block_header_match = block_header.match(line)
+            if block_header_match:
+                in_mbase_block = False
+                continue
+            if in_mbase_block:
+                nickname_match = nickname.match(line)
+                if nickname_match:
+                    base_id = nickname_match.group(1).lower()
+                continue
+            bribe_match = bribe_pattern.match(line)
+            if bribe_match:
+                faction_id = bribe_match.group(1).lower()
+                if faction_id not in self.factions:
+                    continue
+                if base_id not in self.bases:
+                    continue
+                if base_id not in self.factions[faction_id].bribes:
+                    self.factions[faction_id].bribes[base_id] = set()
+                num1 = int(bribe_match.group(2))
+                num2 = int(bribe_match.group(3))
+                self.factions[faction_id].bribes[base_id].add((num1, num2))
 
     def save_to_file(self):
         with open(PICKLE_FILE, 'wb') as outfile:

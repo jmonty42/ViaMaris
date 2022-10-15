@@ -8,11 +8,11 @@ def main():
 
     from_system_id = input("What system are you trading from? ").lower()
     while from_system_id not in game.systems:
-        from_system_id = input(f"{from_system_id} is not a valid system. Try again: ")
+        from_system_id = input(f"{from_system_id} is not a valid system. Try again: ").lower()
     from_system = game.systems[from_system_id]
     to_system_id = input("What system are you going to? ").lower()
     if to_system_id not in game.systems:
-        to_system_id = input(f"{to_system_id} is not a valid system. Try again: ")
+        to_system_id = input(f"{to_system_id} is not a valid system. Try again: ").lower()
     to_system = game.systems[to_system_id]
 
     best_trades = PriceList()

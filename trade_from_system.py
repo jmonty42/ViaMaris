@@ -8,9 +8,8 @@ def main():
 
     system = input("What system are you trading from? ").lower()
 
-    if system not in game.systems:
-        print(f"{system} is not a valid system")
-        return
+    while system not in game.systems:
+        system = input(f"{system} is not a valid system, try again: ").lower()
 
     best_trades = PriceList()
 
